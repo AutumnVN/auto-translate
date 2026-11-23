@@ -2,15 +2,16 @@ package com.autotranslate;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.mojang.logging.LogUtils;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import org.slf4j.Logger;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -25,10 +26,12 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Mod(AutoTranslate.MODID)
+@Mod(modid = AutoTranslate.MODID, name = AutoTranslate.NAME, version = AutoTranslate.VERSION)
 public class AutoTranslate {
     public static final String MODID = "autotranslate";
-    static final Logger LOGGER = LogUtils.getLogger();
+    public static final String NAME = "AutoTranslate";
+    public static final String VERSION = "1.12.2";
+    static final Logger LOGGER = LogManager.getLogger(NAME);
 
     private static final Pattern CHAT_LINE = Pattern.compile("^<([^>]+)>\\s*(.+)$", Pattern.DOTALL);
 
@@ -52,7 +55,7 @@ public class AutoTranslate {
 
     @SubscribeEvent
     public void onChatReceived(ClientChatReceivedEvent event) {
-        String plain = event.getMessage().getString();
+        String plain = event.getMessage().getUnformattedText();
         if (plain.isBlank()) {
             return;
         }
@@ -68,9 +71,10 @@ public class AutoTranslate {
             if (translation == null || normalize(translation).equals(normalize(content))) {
                 return;
             }
-            Component line = Component.literal(prefix + singleLine(translation)).withStyle(ChatFormatting.GRAY);
-            Minecraft.getInstance().execute(() ->
-                    Minecraft.getInstance().gui.getChat().addMessage(line));
+            TextComponentString line = new TextComponentString(prefix + singleLine(translation));
+            line.getStyle().setColor(TextFormatting.GRAY);
+            Minecraft.getMinecraft().addScheduledTask(() ->
+                    Minecraft.getMinecraft().ingameGUI.getChatGUI().printChatMessage(line));
         });
     }
 

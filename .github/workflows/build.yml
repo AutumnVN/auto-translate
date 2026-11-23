@@ -15,12 +15,19 @@ jobs:
       - name: setup jdk
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '25'
           distribution: 'temurin'
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
       - name: build
-        run: ./gradlew build
+        run: |
+          for i in 1 2 3; do
+            if ./gradlew --version; then
+              break
+            fi
+            sleep 15
+          done
+          ./gradlew build
       - name: capture build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -29,7 +36,9 @@ jobs:
       - name: release
         if: github.event_name == 'push'
         run: |
-          JAR=$(ls build/libs/autotranslate-*.jar | head -n 1)
+          JAR=$(ls build/libs/autotranslate-*.jar | grep -v -- '-mcp.jar' | head -n 1)
+          [ -n "$JAR" ] || { echo "no jar found"; exit 1; }
+          gh release create release --title "release" || true
           gh release upload release --clobber "$JAR"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
